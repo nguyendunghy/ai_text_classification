@@ -1,0 +1,6 @@
+configs/wand.config
+.idea/
+.venv/
+lightning_logs/
+wandb/
+resources/
