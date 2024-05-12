@@ -32,6 +32,7 @@ class PilePromptDataset(Iterator):
                 load_dataset("monology/pile-uncopyrighted",
                              streaming=True,
                              split="train",
+                             name="all",
                              cache_dir='/mnt/rendal/Data/Datasets/Texts/pile-uncopyrighted/').shuffle(
                     seed=seed, buffer_size=10000
                 )

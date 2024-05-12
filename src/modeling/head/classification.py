@@ -10,7 +10,7 @@ class ClassificationHead(nn.Module):
         self.ReLu = nn.ReLU()
         self.linear2 = nn.Linear(64, 1)
 
-        self.loss = nn.BCEWithLogitsLoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
 
     def forward(self, x):
         x = self.dropout(x)
@@ -20,4 +20,4 @@ class ClassificationHead(nn.Module):
         return torch.sigmoid(x)
 
     def loss(self, output, target):
-        return self.loss(output, target)
+        return self.bce_loss(output, target)

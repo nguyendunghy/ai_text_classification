@@ -16,8 +16,8 @@ class DataModule(pl.LightningDataModule):
         self._loader_kwargs = loader_kwargs or dict()
 
     def setup(self, stage: str) -> None:
-        train_part, test_dataset = train_test_split(self._dataset, test_size=0.1, random_state=42)
-        train_dataset, val_dataset = train_test_split(train_part, test_size=0.2, random_state=42)
+        train_part, test_dataset = train_test_split(self._dataset, test_size=0.1, random_state=0)
+        train_dataset, val_dataset = train_test_split(train_part, test_size=0.2, random_state=0)
 
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset

@@ -28,7 +28,7 @@ class OllamaModel:
         self.num_predict = num_predict
         self.model = None
         self.params = {}
-        self.init_model()
+        # self.init_model()
 
         self.text_cleaner = TextCleaner()
 
@@ -47,18 +47,19 @@ class OllamaModel:
                             temperature=sampling_temperature,
                             repeat_penalty=frequency_penalty,
                             top_p=top_p,
-                            top_k=top_k)
+                            top_k=top_k,
+                            num_gpu=1)
         self.params = {'top_k': top_k, 'top_p': top_p, 'temperature': sampling_temperature,
                        'repeat_penalty': frequency_penalty}
 
-    def __call__(self, prompt: str, text_completion_mode=False) -> str | None:
+    async def __call__(self, prompt: str, text_completion_mode=False) -> str | None:
         while True:
             try:
                 if text_completion_mode:
                     if ':text' not in self.model_name:
                         system_message = "You're a text completion modeling, just complete text that user sended you"  # . Return text without any supportive - we write add your result right after the user text
-                        text = self.model.invoke([{'role': 'system', 'content': system_message},
-                                                  {'role': 'user', 'content': prompt}])
+                        text = await self.model.invoke([{'role': 'system', 'content': system_message},
+                                                        {'role': 'user', 'content': prompt}])
                     else:
                         text = self.model.invoke(prompt)
                 else:
