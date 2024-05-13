@@ -1,20 +1,22 @@
-import pandas
+import more_itertools
 import pandas as pd
 from tqdm import tqdm
 
-from scripts.model.data_augmentation import DataAugmentator
-from scripts.model.models import ValDataRow
-from scripts.model.my_datasets import HumanDataset, PromptDataset
-from scripts.model.text_completion import OllamaModel
+from model.data_augmentation import DataAugmentator
+from model.models import ValDataRow
+from model.my_datasets import HumanDataset, PromptDataset
+from model.ollama import OllamaModel
+from model.vllm_model import VLLMModel
 
 
 class DataGenerator:
-    def __init__(self, models: list, model_probs: list | None, min_text_length=250):
+    def __init__(self, models: list, model_probs: list | None, batch_size=16, min_text_length=250):
         print(f"DataGenerator initializing...")
         print(f"Models {models}")
         print(f"model_probs {model_probs}")
 
         self.min_text_length = min_text_length
+        self.batch_size = batch_size
         self.models = models
         self.model_names = [el.model_name for el in models]
         self.augmentator = DataAugmentator()
@@ -47,10 +49,14 @@ class DataGenerator:
             model_name = self.model_names[i]
 
             print(f"Generating with {model_name} model and params {model.params}")
-            for j in tqdm(range(cnt_samples)):
-                while True:
-                    el = next(self.prompt_dataset)
-                    el['text'] = model(el['prompt'], text_completion_mode=True)
+            for batch in tqdm(more_itertools.chunked(range(cnt_samples), self.batch_size)):
+                els = [next(self.prompt_dataset) for _ in range(len(batch))]
+                prompts = [el['prompt'] for el in els]
+                texts = model(prompts, text_completion_mode=True)
+
+                for i in range(len(batch)):
+                    el = els[i]
+                    el['text'] = texts[i]
                     el['model_name'] = model_name
                     el['model_params'] = model.params
 
@@ -58,11 +64,10 @@ class DataGenerator:
                     el['text'] = text
                     el['augmentations'] = augs
 
+                for el in els:
                     if len(el['text']) > self.min_text_length:
-                        break
-
-                val_data_row = ValDataRow(**el, label=True)
-                res.append(val_data_row)
+                        val_data_row = ValDataRow(**el, label=True)
+                        res.append(val_data_row)
 
             processed += cnt_samples
         return res
@@ -88,10 +93,11 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataset_size = 5_000
-    model_names = ['llama3', 'mistral', 'neural-chat', 'gemma:7b', 'solar']
-    models = [OllamaModel(model_name) for model_name in model_names]
-    data_generator = DataGenerator(models, [0.2, 0.2, 0.2, 0.2, 0.2])
+    dataset_size = 100
+    model_names = ['TheBloke/Llama-2-7b-Chat-AWQ']
+    # model_names = ['TheBloke/Mistral-7B-Instruct-v0.2-AWQ']
+    models = [VLLMModel(model_name, tensor_parallel_size=1) for model_name in model_names]
+    data_generator = DataGenerator(models, [1], batch_size=16)
     ai_data = data_generator.generate_ai_data(dataset_size)
     human_data = data_generator.generate_human_data(dataset_size)
 
@@ -100,4 +106,4 @@ if __name__ == "__main__":
         df.loc[df.shape[0]] = ai_data_row.model_dump()
     for human_data_row in human_data:
         df.loc[df.shape[0]] = human_data_row.model_dump()
-    df.to_csv('resources/data.csv', index=False)
+    # df.to_csv('resources/data.csv', index=False)

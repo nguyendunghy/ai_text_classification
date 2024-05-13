@@ -6,7 +6,7 @@ import numpy as np
 from datasets import load_dataset
 from collections.abc import Iterator
 
-from scripts.model.prompt_generator import PromptGenerator
+from model.prompt_generator import PromptGenerator
 
 
 class HumanDataset(Iterator):
@@ -30,11 +30,7 @@ class PilePromptDataset(Iterator):
             seed = random.randint(0, 1000)
             dataset = iter(
                 load_dataset("monology/pile-uncopyrighted",
-                             streaming=True,
-                             split="train",
-                             cache_dir='/mnt/rendal/Data/Datasets/Texts/pile-uncopyrighted/').shuffle(
-                    seed=seed, buffer_size=10000
-                )
+                             streaming=True, split="train").shuffle(seed=seed, buffer_size=10000)
             )
             return dataset
         except Exception as e:
@@ -151,7 +147,7 @@ class PromptDataset(Iterator):
                 el = self.prompt_generator.get_challenge(None)
                 res['data_source'] = 'prompt_generator'
             else:
-                print("Getting prompt from pile")
+                # print("Getting prompt from pile")
                 el = next(self.pile_prompt_dataset)
                 res['data_source'] = 'pile'
 

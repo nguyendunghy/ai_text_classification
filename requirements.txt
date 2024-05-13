@@ -1,20 +1,10 @@
-nltk
-pyspellchecker
-symspellpy
-
 torch
 torchmetrics
-ollama
 transformers
 lightning
 wandb
 
-datasets
-zstandard
-langchain_community
-
 pandas
 numpy
 tqdm
-pydantic
 scikit-learn

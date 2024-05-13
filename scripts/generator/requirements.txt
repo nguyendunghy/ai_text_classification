@@ -1,0 +1,14 @@
+nltk
+pyspellchecker
+symspellpy
+more-itertools
+
+ollama
+vllm
+
+datasets
+langchain_community
+
+pandas
+tqdm
+pydantic

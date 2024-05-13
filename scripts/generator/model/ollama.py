@@ -4,7 +4,7 @@ import ollama
 import numpy as np
 from langchain_community.llms import Ollama
 
-from scripts.model.text_postprocessing import TextCleaner
+from model.text_postprocessing import TextCleaner
 
 
 class OllamaModel:
@@ -41,14 +41,13 @@ class OllamaModel:
         top_p = np.random.uniform(low=0.5, high=1)
 
         self.model = Ollama(model=self.model_name,
-                            timeout=200,
+                            # timeout=200,
                             # num_thread=1,
                             num_predict=self.num_predict,
                             temperature=sampling_temperature,
                             repeat_penalty=frequency_penalty,
                             top_p=top_p,
-                            top_k=top_k,
-                            num_gpu=1)
+                            top_k=top_k)
         self.params = {'top_k': top_k, 'top_p': top_p, 'temperature': sampling_temperature,
                        'repeat_penalty': frequency_penalty}
 

@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from transformers import AutoTokenizer
 
-from scripts.model.text_completion import OllamaModel
+from model.ollama import OllamaModel
 # from prompting.agent import HumanAgent
 # from prompting.conversation import create_task
 
