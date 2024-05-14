@@ -1,11 +1,11 @@
-# Ollama
-```
-curl -fsSL https://ollama.com/install.sh | sh
-sudo systemctl start ollama
+# Data generator
+
+```shell
+cd scripts/generator
+python data_generator.py
 ```
 
-1. Сохранить AI данные в pandas
-2. Написать pl скрипт обучения
+# Train script
 
-# Wandb
+### Wandb
 https://wandb.ai/misterrendal/text_ai_classification

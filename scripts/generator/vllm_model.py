@@ -1,13 +1,15 @@
-import time
+import gc
 
+import torch
 import numpy as np
 from langchain_community.llms import VLLM
+from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
 from model.text_postprocessing import TextCleaner
 
 
 class VLLMModel:
-    def __init__(self, model_name, num_predict=1000, tensor_parallel_size=1):
+    def __init__(self, model_name, mode, num_predict=1000, tensor_parallel_size=1):
         """
         available models you can find on https://github.com/ollama/ollama
         before running modeling <model_name> install ollama and run 'ollama pull <model_name>'
@@ -18,11 +20,11 @@ class VLLMModel:
                 "You're trying to set num_predict to more than 1000, it can lead to context overloading and Ollama hanging")
 
         self.model_name = model_name
+        self.mode = mode
         self.num_predict = num_predict
         self.tensor_parallel_size = tensor_parallel_size
         self.model = None
         self.params = {}
-        # self.init_model()
 
         self.text_cleaner = TextCleaner()
 
@@ -37,40 +39,55 @@ class VLLMModel:
         self.model = VLLM(model=self.model_name,
                           timeout=200,
                           trust_remote_code=True,
-                          # num_thread=1,
                           tensor_parallel_size=self.tensor_parallel_size,
                           num_predict=self.num_predict,
                           temperature=sampling_temperature,
                           repeat_penalty=frequency_penalty,
                           vllm_kwargs={
                               "quantization": "awq",
+                              # 'gpu_memory_utilization': 0.7
                           },
                           dtype="float16",
                           # top_p=top_p,
                           # top_k=top_k
                           )
+        # self.model.
         self.params = {'top_k': top_k, 'top_p': top_p, 'temperature': sampling_temperature,
                        'repeat_penalty': frequency_penalty}
 
     def __call__(self, prompts: list[str], text_completion_mode=False) -> str | None:
         # while True:
         try:
-            # if text_completion_mode:
-            # if ':text' not in self.model_name:
-            #     system_message = "You're a text completion modeling, just complete text that user sended you"  # . Return text without any supportive - we write add your result right after the user text
-            #     text = self.model.invoke([{'role': 'system', 'content': system_message},
-            #                               {'role': 'user', 'content': prompt}])
-            # else:
-            # text = await self.model.ainvoke(prompt)
-            # else:
-            # assert ':text' not in self.model_name
-            texts = self.model.batch(prompts)
-            texts = [self.text_cleaner.clean_text(text) for text in texts]
+            if self.mode == "chat":
+                system_message = "You're a text completion modeling, just complete text that user sended you"  # . Return text without any supportive - we write add your result right after the user text
+                batch = []
+                for prompt in prompts:
+                    batch.append([{'role': 'system', 'content': system_message},
+                                  {'role': 'user', 'content': prompt}])
+                texts = self.model.batch(batch)
+            else:
+                texts = self.model.batch(prompts)
+                texts = [self.text_cleaner.clean_text(text) for text in texts]
             return texts
         except Exception as e:
             print(e)
-            # print("Couldn't get response from Ollama, probably it's restarting now: {}".format(e))
-            # time.sleep(1)
+
+    def shotdown(self):
+        print('service stopping ..')
+        print(f"cuda memory: {torch.cuda.memory_allocated() // 1024 // 1024}MB")
+
+        destroy_model_parallel()
+
+        del self.model.client.llm_engine.model_executor.driver_worker
+        del self.model.client
+        del self.model
+
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        print(f"cuda memory: {torch.cuda.memory_allocated() // 1024 // 1024}MB")
+
+        print("service stopped")
 
     def __repr__(self) -> str:
         return f"{self.model_name}"
@@ -78,21 +95,10 @@ class VLLMModel:
 
 if __name__ == '__main__':
     print("started")
-    model = VLLMModel('TheBloke/Llama-2-7b-Chat-AWQ')
-    # model = VLLMModel('TheBloke/Mistral-7B-Instruct-v0.1-AWQ')
+    model = VLLMModel('TheBloke/Llama-2-7b-Chat-AWQ', mode='completion')
     model.init_model()
     print("invoking")
-
-    t1 = time.time()
-    for i in range(16):
-        model(prompts=['What is it?'])
-    t2 = time.time()
-    for i in range(4):
-        model(prompts=['What is it?'] * 4)
-    t3 = time.time()
-    model(prompts=['What is it?'] * 16)
-    t4 = time.time()
-
-    print(t2 - t1, t3 - t2, t4 - t3)
+    texts = model(prompts=['This may lead to unexpected consequences if the model is not static. To run the model in'])
+    print(texts)
     print("finished")
-    # print(model.model)
+    print(model.model)
