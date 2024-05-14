@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import time
@@ -7,6 +9,35 @@ from datasets import load_dataset
 from collections.abc import Iterator
 
 from model.prompt_generator import PromptGenerator
+
+
+def init_pile_dataset():
+    try:
+        seed = random.randint(0, 1000)
+        dataset = iter(
+            load_dataset("monology/pile-uncopyrighted",
+                         streaming=True, split="train").shuffle(seed=seed, buffer_size=10000)
+        )
+        return dataset
+    except Exception as e:
+        logging.error("Got exception during Pile data initializing: {}, retrying...".format(e))
+        time.sleep(60)
+        return init_pile_dataset
+
+
+def init_hc3_dataset():
+    try:
+        seed = random.randint(0, 1000)
+        hc3 = iter(
+            load_dataset("Hello-SimpleAI/HC3", name="all", streaming=True)['train'].shuffle(
+                seed=seed, buffer_size=10000
+            )
+        )
+        return hc3
+    except Exception as e:
+        logging.error("Got exception during hc3 data initializing: {}, retrying...".format(e))
+        time.sleep(60)
+        return init_hc3_dataset()
 
 
 class HumanDataset(Iterator):
@@ -20,23 +51,11 @@ class HumanDataset(Iterator):
 
 
 class PilePromptDataset(Iterator):
+    pile = init_pile_dataset()
+
     def __init__(self, max_prompt_len):
         super().__init__()
-        self.pile = self.init_dataset()
         self.max_prompt_len = max_prompt_len
-
-    def init_dataset(self):
-        try:
-            seed = random.randint(0, 1000)
-            dataset = iter(
-                load_dataset("monology/pile-uncopyrighted",
-                             streaming=True, split="train").shuffle(seed=seed, buffer_size=10000)
-            )
-            return dataset
-        except Exception as e:
-            logging.error("Got exception during Pile data initializing: {}, retrying...".format(e))
-            time.sleep(60)
-            return self.init_dataset()
 
     def generate_prompt(self, context):
         payload_cuttoff = int(len(context) * np.random.uniform(0.1, 0.9))
@@ -75,29 +94,16 @@ class PilePromptDataset(Iterator):
                     print("Got exception during loading data from PilePromptDataset, reinitializing it: {}".format(e))
                     print(e)
 
-                self.pile = self.init_dataset()
+                PilePromptDataset.pile = init_pile_dataset()
                 continue
 
 
 class HC3PromptDataset(Iterator):
+    hc3 = init_hc3_dataset()
+
     def __init__(self, max_prompt_len):
         super().__init__()
-        self.hc3 = self.init_dataset()
         self.max_prompt_len = max_prompt_len
-
-    def init_dataset(self):
-        try:
-            seed = random.randint(0, 1000)
-            hc3 = iter(
-                load_dataset("Hello-SimpleAI/HC3", name="all", streaming=True)['train'].shuffle(
-                    seed=seed, buffer_size=10000
-                )
-            )
-            return hc3
-        except Exception as e:
-            logging.error("Got exception during hc3 data initializing: {}, retrying...".format(e))
-            time.sleep(60)
-            return self.init_dataset()
 
     def __next__(self):
         while True:
@@ -116,7 +122,7 @@ class HC3PromptDataset(Iterator):
                     print("Got exception during loading data from PilePromptDataset, reinitializing it: {}".format(e))
                     print(e)
 
-                self.hc3 = self.init_dataset()
+                HC3PromptDataset.hc3 = init_hc3_dataset()
                 continue
 
             el['question'] = el['question'].replace("Explain like I'm five.", '').replace(
@@ -128,7 +134,7 @@ class HC3PromptDataset(Iterator):
 class PromptDataset(Iterator):
     def __init__(self, max_prompt_len=1500):
         super().__init__()
-        self.hc3_prompt_dataset = HC3PromptDataset(max_prompt_len)
+        # self.hc3_prompt_dataset = HC3PromptDataset(max_prompt_len)
         self.pile_prompt_dataset = PilePromptDataset(max_prompt_len)
         self.prompt_generator = PromptGenerator()
         self.max_prompt_len = max_prompt_len

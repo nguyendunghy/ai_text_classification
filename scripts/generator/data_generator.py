@@ -1,16 +1,17 @@
 import argparse
 import math
-import time
 from pathlib import Path
 
 import more_itertools
-import pandas as pd
 from tqdm import tqdm
 
 from model.data_augmentation import DataAugmentator
-from model.models import ValDataRow
 from model.my_datasets import HumanDataset, PromptDataset
-from scripts.generator.vllm_model import VLLMModel
+from model.vllm_model import VLLMModel
+from sql.database import engine, SessionLocal
+from sql.models import Base, TextModel
+
+Base.metadata.create_all(bind=engine)
 
 
 class DataGenerator:
@@ -37,14 +38,14 @@ class DataGenerator:
         assert len(self.models) == len(self.model_names) == len(self.model_probs)
         assert len(self.models) != 0
 
-        self._data_frame = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
+        self.db = SessionLocal()
+        # self._data_frame = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
 
         print(f"DataGenerator initialized")
 
-    def generate_ai_data(self, n_samples) -> list[ValDataRow]:
+    def generate_ai_data(self, n_samples):
         print(f"Generating {n_samples} samples of AI data")
 
-        res = []
         processed = 0
         for i_model in tqdm(range(len(self.models)), desc=f"Generating AI data"):
             cnt_samples = int(n_samples * self.model_probs[i_model]) if i_model != len(
@@ -68,37 +69,36 @@ class DataGenerator:
 
                     text, augs = self.augmentator(el['text'])
                     el['text'] = text
-                    el['augmentations'] = augs
+                    # el['augmentations'] = augs
 
                 for el in els:
                     if len(el['text']) > self.min_text_length:
-                        val_data_row = ValDataRow(**el, label=True)
-                        res.append(val_data_row)
+                        row = TextModel(**el, label=True)
+                        self.db.add(row)
+                        self.db.commit()
             model.shotdown()
-            print("sleeep")
-            time.sleep(5)
 
             processed += cnt_samples
-        return res
 
-    def generate_human_data(self, n_samples) -> list[ValDataRow]:
+    def generate_human_data(self, n_samples):
         print(f"Generating {n_samples} samples of Human data")
 
-        res = []
-        for i in tqdm(range(n_samples), desc="Generating Humand Data"):
+        for _ in tqdm(range(n_samples), desc="Generating Humand Data"):
             while True:
                 el = next(self.human_dataset)
 
                 text, augs = self.augmentator(el['text'])
                 el['text'] = text
-                el['augmentations'] = augs
+                del el['topic']
+
+                el['augmentations'] = str(augs)
 
                 if len(el['text']) > self.min_text_length:
                     break
 
-            val_data_row = ValDataRow(**el, label=False)
-            res.append(val_data_row)
-        return res
+            row = TextModel(**el, label=False)
+            self.db.add(row)
+            self.db.commit()
 
 
 def parse():
@@ -120,11 +120,11 @@ if __name__ == "__main__":
     ai_data = data_generator.generate_ai_data(args.dataset_size)
     human_data = data_generator.generate_human_data(args.dataset_size)
 
-    df = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
-    for ai_data_row in tqdm(ai_data, desc="AI Data"):
-        df.loc[df.shape[0]] = ai_data_row.model_dump()
-    for human_data_row in tqdm(human_data, desc="Human Data"):
-        df.loc[df.shape[0]] = human_data_row.model_dump()
-
-    args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(str(args.output_csv), index=False)
+    # df = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
+    # for ai_data_row in tqdm(ai_data, desc="AI Data"):
+    #     df.loc[df.shape[0]] = ai_data_row.model_dump()
+    # for human_data_row in tqdm(human_data, desc="Human Data"):
+    #     df.loc[df.shape[0]] = human_data_row.model_dump()
+    #
+    # args.output_csv.parent.mkdir(parents=True, exist_ok=True)
+    # df.to_csv(str(args.output_csv), index=False)
