@@ -3,9 +3,11 @@ pyspellchecker
 symspellpy
 more-itertools
 sqlalchemy
+zstandard
 
 ollama
 vllm==0.4.0.post1
+ray
 
 datasets
 langchain_community

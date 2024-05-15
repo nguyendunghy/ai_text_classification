@@ -9,11 +9,7 @@ from model.text_postprocessing import TextCleaner
 
 
 class VLLMModel:
-    def __init__(self, model_name, mode, num_predict=1000, tensor_parallel_size=1):
-        """
-        available models you can find on https://github.com/ollama/ollama
-        before running modeling <model_name> install ollama and run 'ollama pull <model_name>'
-        """
+    def __init__(self, model_name, mode, num_predict=1000, tensor_parallel_size=1, vllm_kwargs=None):
         print(f'Initializing vllmModel {model_name}')
         if num_predict > 1000:
             raise Exception(
@@ -22,7 +18,9 @@ class VLLMModel:
         self.model_name = model_name
         self.mode = mode
         self.num_predict = num_predict
+
         self.tensor_parallel_size = tensor_parallel_size
+        self.vllm_kwargs = vllm_kwargs if vllm_kwargs is not None else {}
         self.model = None
         self.params = {}
 
@@ -43,15 +41,9 @@ class VLLMModel:
                           num_predict=self.num_predict,
                           temperature=sampling_temperature,
                           repeat_penalty=frequency_penalty,
-                          vllm_kwargs={
-                              "quantization": "awq",
-                              # 'gpu_memory_utilization': 0.7
-                          },
-                          dtype="float16",
-                          # top_p=top_p,
-                          # top_k=top_k
-                          )
-        # self.model.
+                          vllm_kwargs=self.vllm_kwargs,
+                          dtype="float16")
+
         self.params = {'top_k': top_k, 'top_p': top_p, 'temperature': sampling_temperature,
                        'repeat_penalty': frequency_penalty}
 
@@ -73,6 +65,10 @@ class VLLMModel:
             print(e)
 
     def shotdown(self):
+        import gc
+        import ray
+        from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
+
         print('service stopping ..')
         print(f"cuda memory: {torch.cuda.memory_allocated() // 1024 // 1024}MB")
 
@@ -84,6 +80,7 @@ class VLLMModel:
 
         gc.collect()
         torch.cuda.empty_cache()
+        ray.shutdown()
 
         print(f"cuda memory: {torch.cuda.memory_allocated() // 1024 // 1024}MB")
 

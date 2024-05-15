@@ -134,7 +134,7 @@ class HC3PromptDataset(Iterator):
 class PromptDataset(Iterator):
     def __init__(self, max_prompt_len=1500):
         super().__init__()
-        # self.hc3_prompt_dataset = HC3PromptDataset(max_prompt_len)
+        self.hc3_prompt_dataset = HC3PromptDataset(max_prompt_len)
         self.pile_prompt_dataset = PilePromptDataset(max_prompt_len)
         self.prompt_generator = PromptGenerator()
         self.max_prompt_len = max_prompt_len

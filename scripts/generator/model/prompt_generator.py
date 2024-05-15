@@ -4,15 +4,17 @@ import numpy as np
 from transformers import AutoTokenizer
 
 from model.ollama import OllamaModel
+from model.vllm_model import VLLMModel
+
+
 # from prompting.agent import HumanAgent
 # from prompting.conversation import create_task
 
 
 class MyLLMPipeline:
     def __init__(self, model_name='zephyr:7b-beta'):
-        self.model = OllamaModel(model_name,
-                                 num_predict=256)
-        self.tokenizer = AutoTokenizer.from_pretrained('HuggingFaceH4/zephyr-7b-beta')
+        self.model = VLLMModel(model_name, mode='completion',
+                               num_predict=256)
 
     def __call__(self, prompt, **kwargs):
         res = self.model(prompt)

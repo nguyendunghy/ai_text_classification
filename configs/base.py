@@ -2,11 +2,11 @@ from pathlib import Path
 
 # seed = 42
 gpus = [0]
-batch_size = 16
+batch_size = 24
 lr = 2e-4
 
 epochs = 10
-num_workers = 8
+num_workers = 16
 
 resources = Path('./resources')
 
@@ -18,8 +18,8 @@ def datamodule_cfg():
             num_workers=num_workers,
         ),
         dataset_cfg=dict(
-            type='CSVDataset',
-            csv_file='resources/data.csv'
+            type='PKLDataset',
+            csv_file='resources/data.pkl'
         )
     )
 

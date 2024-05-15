@@ -1,6 +1,5 @@
 import argparse
 import math
-from pathlib import Path
 
 import more_itertools
 from tqdm import tqdm
@@ -39,7 +38,6 @@ class DataGenerator:
         assert len(self.models) != 0
 
         self.db = SessionLocal()
-        # self._data_frame = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
 
         print(f"DataGenerator initialized")
 
@@ -65,14 +63,15 @@ class DataGenerator:
                     el = els[i]
                     el['text'] = texts[i]
                     el['model_name'] = model_name
-                    el['model_params'] = model.params
+                    el['model_params'] = str(model.params)
 
                     text, augs = self.augmentator(el['text'])
                     el['text'] = text
-                    # el['augmentations'] = augs
+                    del el['topic']
+                    el['augmentations'] = str(augs)
 
                 for el in els:
-                    if len(el['text']) > self.min_text_length:
+                    if el and len(el['text']) > self.min_text_length:
                         row = TextModel(**el, label=True)
                         self.db.add(row)
                         self.db.commit()
@@ -104,8 +103,8 @@ class DataGenerator:
 def parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset_size', type=int, help='Number of samples to generate')
-    parser.add_argument('batch_size', type=int, help='Batch size', default=16)
-    parser.add_argument("--output_csv", type=Path, default="resources/data.csv")
+    parser.add_argument('--batch_size', type=int, help='Batch size', default=128)
+    parser.add_argument('--gpus', type=int, help='Batch size', default=1)
     return parser.parse_args()
 
 
@@ -113,18 +112,65 @@ if __name__ == "__main__":
     args = parse()
 
     models = [
-        VLLMModel('TheBloke/Llama-2-7b-Chat-AWQ', tensor_parallel_size=1, mode='completion'),
+        VLLMModel('casperhansen/llama-3-8b-instruct-awq', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/Mistral-7B-Instruct-v0.2-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('casperhansen/gemma-7b-it-awq', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/neural-chat-7B-v3-3-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/zephyr-7B-beta-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/OpenHermes-2.5-Mistral-7B-16k-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/WizardCoder-33B-V1.1-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      max_model_len=37200,
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/Starling-LM-7B-alpha-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        # VLLMModel('TheBloke/Yi-34B-Chat-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+        #           vllm_kwargs=dict(
+        #               tensor_parallel_size=args.gpus,
+        #               # max_model_len=37200,
+        #               quantization='awq'
+        #           )),
+        VLLMModel('TheBloke/openchat_3.5-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/dolphin-2.6-mistral-7B-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/SOLAR-10.7B-Instruct-v1.0-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
+        VLLMModel('TheBloke/Llama-2-13B-chat-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+                  vllm_kwargs=dict(
+                      quantization='awq'
+                  )),
     ]
 
     data_generator = DataGenerator(models, model_probs=None, batch_size=args.batch_size)
     ai_data = data_generator.generate_ai_data(args.dataset_size)
     human_data = data_generator.generate_human_data(args.dataset_size)
 
-    # df = pd.DataFrame(columns=list(ValDataRow.model_fields.keys()))
-    # for ai_data_row in tqdm(ai_data, desc="AI Data"):
-    #     df.loc[df.shape[0]] = ai_data_row.model_dump()
-    # for human_data_row in tqdm(human_data, desc="Human Data"):
-    #     df.loc[df.shape[0]] = human_data_row.model_dump()
-    #
-    # args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-    # df.to_csv(str(args.output_csv), index=False)
+
