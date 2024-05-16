@@ -1,10 +1,8 @@
 import sys
 
 import numpy as np
-from transformers import AutoTokenizer
 
-from model.ollama import OllamaModel
-from model.vllm_model import VLLMModel
+from src.model.vllm_model import VLLMModel
 
 
 # from prompting.agent import HumanAgent

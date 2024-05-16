@@ -4,7 +4,7 @@ import ollama
 import numpy as np
 from langchain_community.llms import Ollama
 
-from model.text_postprocessing import TextCleaner
+from src.model.text_postprocessing import TextCleaner
 
 
 class OllamaModel:

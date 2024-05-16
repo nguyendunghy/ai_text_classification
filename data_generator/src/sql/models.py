@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
-from sql.database import Base
+from src.sql.database import Base
 
 
 class TextModel(Base):

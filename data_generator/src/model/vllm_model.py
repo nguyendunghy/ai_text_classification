@@ -1,11 +1,8 @@
-import gc
-
 import torch
 import numpy as np
 from langchain_community.llms import VLLM
-from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
-from model.text_postprocessing import TextCleaner
+from src.model.text_postprocessing import TextCleaner
 
 
 class VLLMModel:

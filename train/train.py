@@ -25,7 +25,7 @@ def main():
     # seed_everything_deterministic(configs.seed)
 
     main_module = build_module(config.mainmodule_cfg())
-    # load_pretrained_weights(configs.__dict__.get('pretrained', None), main_module)
+
     torch.set_float32_matmul_precision('medium')
     trainer = Trainer(**build_params_for_trainer(args, trainer_cfg, main_module, with_wandb=False))
     trainer.fit(main_module, datamodule=data_module)

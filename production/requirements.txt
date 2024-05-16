@@ -1,0 +1,5 @@
+tqdm
+more_itertools
+numpy
+onnxruntime-gpu
+transformers

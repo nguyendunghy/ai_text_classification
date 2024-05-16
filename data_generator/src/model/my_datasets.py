@@ -8,8 +8,6 @@ import numpy as np
 from datasets import load_dataset
 from collections.abc import Iterator
 
-from model.prompt_generator import PromptGenerator
-
 
 def init_pile_dataset():
     try:
@@ -136,7 +134,7 @@ class PromptDataset(Iterator):
         super().__init__()
         self.hc3_prompt_dataset = HC3PromptDataset(max_prompt_len)
         self.pile_prompt_dataset = PilePromptDataset(max_prompt_len)
-        self.prompt_generator = PromptGenerator()
+        # self.prompt_generator = PromptGenerator()
         self.max_prompt_len = max_prompt_len
 
     def __next__(self) -> dict:

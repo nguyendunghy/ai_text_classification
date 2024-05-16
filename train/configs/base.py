@@ -1,14 +1,21 @@
 from pathlib import Path
 
-# seed = 42
 gpus = [0]
 batch_size = 24
-lr = 2e-4
+lr = 2e-5
 
-epochs = 10
+epochs = 100
 num_workers = 16
 
 resources = Path('./resources')
+
+model_names = [
+    None,
+    'casperhansen/llama-3-8b-instruct-awq',
+    'TheBloke/Mistral-7B-Instruct-v0.2-AWQ',
+    'casperhansen/gemma-7b-it-awq'
+]
+model_names = {model_name: idx for idx, model_name in enumerate(model_names)}
 
 
 def datamodule_cfg():
@@ -19,7 +26,8 @@ def datamodule_cfg():
         ),
         dataset_cfg=dict(
             type='PKLDataset',
-            csv_file='resources/data.pkl'
+            csv_file='resources/data.pkl',
+            model_names=model_names,
         )
     )
 
@@ -32,7 +40,7 @@ def trainer_cfg(**kwargs):
             dict(type='LearningRateMonitor', logging_interval='step'),
             dict(type='ModelCheckpoint', save_top_k=3, save_last=True, verbose=True, mode='max',
                  monitor='BinaryAccuracy', dirpath=resources / 'checkpoints',
-                 filename='checkpoint_{BinaryAccuracy:.3f}')
+                 filename='checkpoint_{BinaryAccuracy:.3f}_{MulticlassAccuracy:.3f}')
         ],
         benchmark=True,
         accumulate_grad_batches=1,
@@ -74,6 +82,7 @@ def mainmodule_cfg():
             type='ClassificationHead',
             in_features=768,
             dropout=0.2,
+            num_model_names=len(model_names),
         ),
         # Optimization stuff agnostic parameters
         optimizer_cfg=dict(

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from sql.database import SessionLocal
-from sql.models import TextModel
+from src.sql.database import SessionLocal
+from src.sql.models import TextModel
 
 
 def query_all_data():
@@ -23,9 +23,10 @@ def save_to_csv(rows, output_csv):
     df.to_pickle(str(output_csv))
     print(f"Saved {df.shape} rows to {output_csv}")
 
+
 def parse():
     parser = ArgumentParser()
-    parser.add_argument("--output_csv", type=Path, default="resources/human_data.pkl")
+    parser.add_argument("--output_csv", type=Path, default="resources/ai_data.pkl")
     return parser.parse_args()
 
 

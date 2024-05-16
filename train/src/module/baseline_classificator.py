@@ -1,6 +1,7 @@
 from typing import Any
 
 import torch
+import torchmetrics
 import lightning as pl
 from torch import optim, nn
 
@@ -20,36 +21,51 @@ class BaselineClassificator(pl.LightningModule):
                                                                              self.hparams.head_cfg)
 
         self.metrics = torch.nn.ModuleList()
-        for cfg in self.hparams.metrics:
-            self.metrics.append(ModuleBuilder.build_metric(cfg))
+
+        self.acc_binary = torchmetrics.Accuracy(task='binary')
+        self.acc_multiclass = torchmetrics.Accuracy(task='multiclass', num_classes=self.head._num_classes)
+
+        self.metrics.append(self.acc_binary)
+        self.metrics.append(self.acc_multiclass)
+        # for cfg in self.hparams.metrics:
+        #     self.metrics.append(ModuleBuilder.build_metric(cfg))
 
     def forward(self, x: torch.Tensor) -> Any:
         x = self.tokenizer.tokenize(x)
         x = x.to(self.device)
         x = self.backbone(x)
         x = self.head(x)
-        x = x.squeeze(1)
         return x
+
+    def forward_postprocess(self, x):
+        with torch.no_grad():
+            x = self.backbone(x)
+            outputs = self.head(x)
+            return outputs
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         # it is independent of forward
         texts, labels = batch
-        preds = self.forward(texts)
-        loss = self.head.loss(preds, labels)
+        outputs = self.forward(texts)
+        losses = self.head.loss(outputs, labels)
+
         # Logging to TensorBoard (if installed) by default
-        self.log("train/loss", loss, prog_bar=True)
-        return loss
+        for name, value in losses.items():
+            self.log(f"train/{name}", value, prog_bar=True)
+        return sum(losses.values())
 
     def validation_step(self, batch, batch_idx):
         texts, labels = batch
-        preds = self.forward(texts)
-        loss = self.head.loss(preds, labels)
+        outputs = self.forward(texts)
+        losses = self.head.loss(outputs, labels)
         # Logging to TensorBoard (if installed) by default
-        self.log("val/loss", loss, prog_bar=True)
-        for metric in self.metrics:
-            metric.update(preds, labels)
-        return loss
+        for name, value in losses.items():
+            self.log(f"val/{name}", value, prog_bar=True)
+
+        self.acc_multiclass.update(outputs['model_name_output'], labels[0])
+        self.acc_binary.update(outputs['ai_output'], labels[1])
+        return sum(losses.values())
 
     def on_validation_epoch_end(self):
         for metric in self.metrics:
@@ -64,11 +80,8 @@ class BaselineClassificator(pl.LightningModule):
         self.on_validation_epoch_end()
 
     def predict_step(self, texts, batch_idx) -> Any:
-        # print(batch)
-        # texts, labels = batch
-        preds = self.forward(texts)
-        return preds
+        return self.forward(texts)
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=1e-4)
+        optimizer = optim.AdamW(self.parameters(), lr=2e-5)
         return optimizer

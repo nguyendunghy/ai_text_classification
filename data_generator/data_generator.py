@@ -4,11 +4,11 @@ import math
 import more_itertools
 from tqdm import tqdm
 
-from model.data_augmentation import DataAugmentator
-from model.my_datasets import HumanDataset, PromptDataset
-from model.vllm_model import VLLMModel
-from sql.database import engine, SessionLocal
-from sql.models import Base, TextModel
+from src.model.data_augmentation import DataAugmentator
+from src.model.my_datasets import HumanDataset, PromptDataset
+from src.model.vllm_model import VLLMModel
+from src.sql.database import engine, SessionLocal
+from src.sql.models import Base, TextModel
 
 Base.metadata.create_all(bind=engine)
 
@@ -136,11 +136,11 @@ if __name__ == "__main__":
                   vllm_kwargs=dict(
                       quantization='awq'
                   )),
-        VLLMModel('TheBloke/WizardCoder-33B-V1.1-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      max_model_len=37200,
-                      quantization='awq'
-                  )),
+        # VLLMModel('TheBloke/WizardCoder-33B-V1.1-AWQ', tensor_parallel_size=args.gpus, mode='completion',
+        #           vllm_kwargs=dict(
+        #               max_model_len=37200,
+        #               quantization='awq'
+        #           )),
         VLLMModel('TheBloke/Starling-LM-7B-alpha-AWQ', tensor_parallel_size=args.gpus, mode='completion',
                   vllm_kwargs=dict(
                       quantization='awq'
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     ]
 
     data_generator = DataGenerator(models, model_probs=None, batch_size=args.batch_size)
-    ai_data = data_generator.generate_ai_data(args.dataset_size)
+    # ai_data = data_generator.generate_ai_data(args.dataset_size)
     human_data = data_generator.generate_human_data(args.dataset_size)
 
 
