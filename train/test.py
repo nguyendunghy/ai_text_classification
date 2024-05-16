@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 from lightning import Trainer
 
-from src.data.module import DataModule
+from src.data.data_module import DataModule
 from src.utils.builders import build_module
 from src.utils.other import load_module
 

@@ -7,6 +7,7 @@ from tqdm import tqdm
 from src.model.data_augmentation import DataAugmentator
 from src.model.my_datasets import HumanDataset, PromptDataset
 from src.model.vllm_model import VLLMModel
+from src.model.ollama import OllamaModel
 from src.sql.database import engine, SessionLocal
 from src.sql.models import Base, TextModel
 

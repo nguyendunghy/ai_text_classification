@@ -2,6 +2,7 @@ from typing import Dict, Any
 
 import torchmetrics as PLMetrics
 import lightning.pytorch.callbacks as Callbacks
+import torch.utils.data as TorchDatasets
 
 import src.data as DataModules
 import src.data.datasets as Datasets
@@ -53,6 +54,9 @@ def build_metric(cfg: Dict[str, Any]):
 
 
 def build_dataset(cfg: Dict[str, Any]):
+    if cfg.get('type') == 'ConcatDataset':
+        cfg['datasets'] = [build_dataset(dataset_cfg) for dataset_cfg in cfg.get('datasets')]
+        return _base_build(cfg, [TorchDatasets])
     return _base_build(cfg, [Datasets])
 
 
