@@ -1,13 +1,9 @@
 import json
-import time
 from argparse import ArgumentParser
 from pathlib import Path
 
 import torch
 from torch.onnx import export
-
-from lightning import Trainer
-from torch.utils.data import DataLoader
 
 from src.utils.builders import build_module
 from src.utils.other import load_module
@@ -24,7 +20,6 @@ def parse():
 def load_model(config, checkpoint_path, device):
     config = load_module(config)
 
-    # main_module
     main_module = build_module(config.mainmodule_cfg())
     # load checkpoint
     state_dict = torch.load(str(checkpoint_path), map_location='cpu')['state_dict']
@@ -65,8 +60,6 @@ if __name__ == '__main__':
     args = parse()
 
     assert args.config.exists(), f"Config is not found: {args.config}"
-    args.checkpoint_path = Path('resources/checkpoints/checkpoint_BinaryAccuracy=0.984_MulticlassAccuracy=0.967.ckpt')
-    assert Path('resources/checkpoints').exists(), f"Resources is not found: {Path('resources')}"
     assert args.checkpoint_path.exists(), f"Checkpoint is not found: {args.checkpoint_path}"
 
     main(args)

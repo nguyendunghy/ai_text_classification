@@ -13,7 +13,11 @@ model_names = [
     None,
     'casperhansen/llama-3-8b-instruct-awq',
     'TheBloke/Mistral-7B-Instruct-v0.2-AWQ',
-    'casperhansen/gemma-7b-it-awq'
+    'casperhansen/gemma-7b-it-awq',
+    'TheBloke/neural-chat-7B-v3-3-AWQ',
+    'TheBloke/zephyr-7B-beta-AWQ',
+    'TheBloke/OpenHermes-2.5-Mistral-7B-16k-AWQ',
+    'TheBloke/WizardCoder-33B-V1.1-AWQ',
 ]
 model_names = {model_name: idx for idx, model_name in enumerate(model_names)}
 

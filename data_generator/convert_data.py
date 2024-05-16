@@ -26,7 +26,7 @@ def save_to_csv(rows, output_csv):
 
 def parse():
     parser = ArgumentParser()
-    parser.add_argument("--output_csv", type=Path, default="resources/ai_data.pkl")
+    parser.add_argument("--output_csv", type=Path, default="resources/human_data.pkl")
     return parser.parse_args()
 
 

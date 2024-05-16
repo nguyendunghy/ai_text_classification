@@ -20,9 +20,10 @@ def parse():
 
 
 class Predictor:
-    def __init__(self, onnx_model: Path):
+    def __init__(self, onnx_model: Path, batch_size: int):
         self._tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
         self._model = ort.InferenceSession(str(onnx_model), providers=['CUDAExecutionProvider'])
+        self._batch_size = batch_size
 
     def get_output_names(self):
         return [model_output.name for model_output in self._model.get_outputs()]
@@ -38,6 +39,14 @@ class Predictor:
         ort_outs = self._model.run(self.get_output_names(), ort_inputs)
         return ort_outs[0]
 
+    def __call__(self, texts):
+        confs = []
+        for batch in more_itertools.chunked(texts, self._batch_size):
+            outputs = self.forward(batch)
+            confs.extend(outputs)
+        labels = [conf > 0.5 for conf in confs]
+        return labels
+
 
 def load_test_data():
     with open('resources/test_data_2.json', 'r') as f:
@@ -47,14 +56,12 @@ def load_test_data():
 
 
 def main(args):
-    predictor = Predictor(args.onnx_model)
+    predictor = Predictor(args.onnx_model, args.batch_size)
 
     texts = load_test_data()
     t1 = time.time()
-    for batch in tqdm.tqdm(more_itertools.chunked(texts, 16)):
-        confs = predictor.forward(batch)
-        labels = confs > 0.5
-        print(labels)
+    labels = predictor(texts)
+    print(labels)
     t2 = time.time()
     print(f"Time: {t2 - t1:.2f} s")
 

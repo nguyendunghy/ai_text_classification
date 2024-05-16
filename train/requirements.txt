@@ -3,9 +3,7 @@ torchmetrics
 transformers
 lightning
 onnx
-onnxruntime-gpu
 wandb
-more_itertools
 
 pandas
 numpy

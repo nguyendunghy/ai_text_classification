@@ -3,3 +3,5 @@ more_itertools
 numpy
 onnxruntime-gpu
 transformers
+flask
+requests
