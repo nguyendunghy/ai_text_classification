@@ -3,9 +3,12 @@ from typing import Dict, Any
 import torchmetrics as PLMetrics
 import lightning.pytorch.callbacks as Callbacks
 import torch.utils.data as TorchDatasets
+from torch import optim as Optimizers
+from transformers import get_linear_schedule_with_warmup
 
 import src.data as DataModules
 import src.data.datasets as Datasets
+import src.data.trasnforms as Trasnforms
 import src.modeling.backbone as Backbones
 import src.modeling.tokenizer as Tokenizers
 import src.modeling.head as Heads
@@ -53,11 +56,29 @@ def build_metric(cfg: Dict[str, Any]):
     return _base_build(cfg, [PLMetrics])
 
 
-def build_dataset(cfg: Dict[str, Any]):
+def build_dataset(tokenizer, cfg: Dict[str, Any]):
     if cfg.get('type') == 'ConcatDataset':
-        cfg['datasets'] = [build_dataset(dataset_cfg) for dataset_cfg in cfg.get('datasets')]
+        datasets = []
+        for dataset_cfg in cfg.get('datasets'):
+            dataset_cfg['tokenizer'] = tokenizer
+            datasets.append(build_dataset(tokenizer, dataset_cfg))
+        cfg['datasets'] = datasets
         return _base_build(cfg, [TorchDatasets])
+    cfg['tokenizer'] = tokenizer
     return _base_build(cfg, [Datasets])
+
+
+def build_transform(cfg: Dict[str, Any]):
+    return _base_build(cfg, [Trasnforms])
+
+
+def build_optimizer(params, cfg: Dict[str, Any]):
+    cfg['params'] = params
+    return _base_build(cfg, [Optimizers])
+
+
+def build_scheduler(optimizer, cfg: Dict[str, Any]):
+    return get_linear_schedule_with_warmup(optimizer=optimizer, **cfg)
 
 
 def build_callbacks(cfg: Dict[str, Any]):

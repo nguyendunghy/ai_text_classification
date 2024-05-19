@@ -1,9 +1,15 @@
 torch
 torchmetrics
+torchsampler
 transformers
 lightning
 onnx
 wandb
+sentencepiece
+
+nltk
+spellchecker
+pyspellchecker
 
 pandas
 numpy

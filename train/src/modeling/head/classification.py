@@ -3,7 +3,7 @@ from torch import nn
 
 
 class ClassificationHead(nn.Module):
-    def __init__(self, in_features, dropout, num_model_names: int):
+    def __init__(self, in_features, dropout, num_model_names: int, pos_weight: float):
         super().__init__()
         self._num_classes = num_model_names
 
@@ -13,7 +13,7 @@ class ClassificationHead(nn.Module):
         self.ai_generated_linear = nn.Linear(64, 1)
         self.name_model_linear = nn.Linear(64, num_model_names)
 
-        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight))
         self.ce_loss = nn.CrossEntropyLoss()
 
     def forward(self, x):
@@ -33,6 +33,3 @@ class ClassificationHead(nn.Module):
             ai_loss=self.bce_loss(outputs['ai_output'], ai_target),
             model_name_loss=self.ce_loss(outputs['model_name_output'], model_name_target),
         )
-
-    def export_onnx(self, outputs):
-        return torch.cat([outputs['ai_output'], outputs['model_name_output']], dim=1)

@@ -15,13 +15,12 @@ Base.metadata.create_all(bind=engine)
 
 
 class DataGenerator:
-    def __init__(self, models: list, model_probs: list | None, batch_size=16, min_text_length=250):
+    def __init__(self, models: list, model_probs: list | None, min_text_length=250):
         print(f"DataGenerator initializing...")
         print(f"Models {models}")
         print(f"model_probs {model_probs}")
 
         self.min_text_length = min_text_length
-        self.batch_size = batch_size
         self.models = models
         self.model_names = [el.model_name for el in models]
         self.augmentator = DataAugmentator()
@@ -54,15 +53,11 @@ class DataGenerator:
             model_name = self.model_names[i_model]
 
             print(f"Generating with {model_name} model and params {model.params}")
-            for batch in tqdm(more_itertools.chunked(range(cnt_samples), self.batch_size),
-                              total=math.ceil(cnt_samples / self.batch_size)):
-                els = [next(self.prompt_dataset) for _ in range(len(batch))]
-                prompts = [el['prompt'] for el in els]
-                texts = model(prompts, text_completion_mode=True)
+            for _ in tqdm(range(cnt_samples)):
+                while True:
+                    el = next(self.prompt_dataset)
+                    el['text'] = model(el['prompt'], text_completion_mode=True)
 
-                for i in range(len(batch)):
-                    el = els[i]
-                    el['text'] = texts[i]
                     el['model_name'] = model_name
                     el['model_params'] = str(model.params)
 
@@ -71,12 +66,12 @@ class DataGenerator:
                     del el['topic']
                     el['augmentations'] = str(augs)
 
-                for el in els:
-                    if el and len(el['text']) > self.min_text_length:
-                        row = TextModel(**el, label=True)
-                        self.db.add(row)
-                        self.db.commit()
-            model.shotdown()
+                    if len(el['text']) > self.min_text_length:
+                        break
+
+                row = TextModel(**el, label=True)
+                self.db.add(row)
+                self.db.commit()
 
             processed += cnt_samples
 
@@ -87,11 +82,11 @@ class DataGenerator:
             while True:
                 el = next(self.human_dataset)
 
-                text, augs = self.augmentator(el['text'])
-                el['text'] = text
+                # text, augs = self.augmentator(el['text'])
+                # el['text'] = text
                 del el['topic']
 
-                el['augmentations'] = str(augs)
+                # el['augmentations'] = str(augs)
 
                 if len(el['text']) > self.min_text_length:
                     break
@@ -104,8 +99,6 @@ class DataGenerator:
 def parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset_size', type=int, help='Number of samples to generate')
-    parser.add_argument('--batch_size', type=int, help='Batch size', default=128)
-    parser.add_argument('--gpus', type=int, help='Batch size', default=1)
     return parser.parse_args()
 
 
@@ -113,65 +106,23 @@ if __name__ == "__main__":
     args = parse()
 
     models = [
-        VLLMModel('casperhansen/llama-3-8b-instruct-awq', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/Mistral-7B-Instruct-v0.2-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('casperhansen/gemma-7b-it-awq', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/neural-chat-7B-v3-3-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/zephyr-7B-beta-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/OpenHermes-2.5-Mistral-7B-16k-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        # VLLMModel('TheBloke/WizardCoder-33B-V1.1-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-        #           vllm_kwargs=dict(
-        #               max_model_len=37200,
-        #               quantization='awq'
-        #           )),
-        VLLMModel('TheBloke/Starling-LM-7B-alpha-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        # VLLMModel('TheBloke/Yi-34B-Chat-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-        #           vllm_kwargs=dict(
-        #               tensor_parallel_size=args.gpus,
-        #               # max_model_len=37200,
-        #               quantization='awq'
-        #           )),
-        VLLMModel('TheBloke/openchat_3.5-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/dolphin-2.6-mistral-7B-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/SOLAR-10.7B-Instruct-v1.0-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
-        VLLMModel('TheBloke/Llama-2-13B-chat-AWQ', tensor_parallel_size=args.gpus, mode='completion',
-                  vllm_kwargs=dict(
-                      quantization='awq'
-                  )),
+        OllamaModel(model_name='mistral:text'),
+        OllamaModel(model_name='llama3:text'),
+        OllamaModel(model_name='mixtral:text'),
+        OllamaModel(model_name='gemma:7b'),
+        OllamaModel(model_name='command-r'),
+        OllamaModel(model_name='neural-chat'),
+        OllamaModel(model_name='zephyr:7b-beta'),
+        OllamaModel(model_name='openhermes'),
+        OllamaModel(model_name='wizardcoder'),
+        OllamaModel(model_name='starling-lm:7b-beta'),
+        OllamaModel(model_name='yi:34b'),
+        OllamaModel(model_name='openchat:7b'),
+        OllamaModel(model_name='dolphin-mistral'),
+        OllamaModel(model_name='solar'),
+        OllamaModel(model_name='llama2:13b'),
     ]
 
-    data_generator = DataGenerator(models, model_probs=None, batch_size=args.batch_size)
+    data_generator = DataGenerator(models, model_probs=None)
     # ai_data = data_generator.generate_ai_data(args.dataset_size)
     human_data = data_generator.generate_human_data(args.dataset_size)
-
-

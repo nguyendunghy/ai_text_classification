@@ -9,29 +9,28 @@ from src.utils.builders import build_module
 from src.utils.other import load_module
 
 
-def main():
+def parse_args():
     parser = ArgumentParser()
     parser.add_argument('config', type=Path)
     parser.add_argument('checkpoint_path', type=Path, help='Checkpoint path')
-    args = parser.parse_args()
+    parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda'], help='Device to use')
+    return parser.parse_args()
 
-    assert args.config.exists(), f"Config is not found: {args.config}"
-    assert args.checkpoint_path.exists(), f"Checkpoint is not found: {args.path}"
+
+def main(args):
     config = load_module(args.config)
 
-    datamodule_cfg = config.datamodule_cfg()
-    datamodule_cfg['dataset_cfg'] = dict(
-        type='JsonDataset',
-        json_file='resources/sample_data_1715832347273793558.json',
-        model_names=[],
-    )
-    data_module = DataModule(**datamodule_cfg)
+    data_module = DataModule(**config.datamodule_cfg())
 
-    main_module = build_module(config.mainmodule_cfg())
+    main_module_cfg = config.mainmodule_cfg(
+        train_ds_size=len(data_module.train_dataset),
+        pos_weight=data_module.pos_weight
+    )
+    main_module = build_module(main_module_cfg)
     state_dict = torch.load(str(args.checkpoint_path), map_location='cpu')['state_dict']
     main_module.load_state_dict(state_dict, strict=False)
     main_module.eval()
-    # main_module.cuda()
+    main_module.to(args.device)
     main_module.half()
 
     trainer = Trainer()
@@ -39,4 +38,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+
+    assert args.config.exists(), f"Config is not found: {args.config}"
+    assert args.checkpoint_path.exists(), f"Checkpoint is not found: {args.path}"
+
+    main(args)

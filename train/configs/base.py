@@ -1,25 +1,37 @@
 from pathlib import Path
 
+seed = 0
 gpus = [0]
-batch_size = 24
+batch_size = 16
 lr = 2e-5
 
-epochs = 100
-num_workers = 16
+epochs = 5
+num_workers = 8
 
 resources = Path('./resources')
 
 model_names = [
     None,
-    'casperhansen/llama-3-8b-instruct-awq',
-    'TheBloke/Mistral-7B-Instruct-v0.2-AWQ',
-    'casperhansen/gemma-7b-it-awq',
-    'TheBloke/neural-chat-7B-v3-3-AWQ',
-    'TheBloke/zephyr-7B-beta-AWQ',
-    'TheBloke/OpenHermes-2.5-Mistral-7B-16k-AWQ',
-    'TheBloke/WizardCoder-33B-V1.1-AWQ',
+    'mistral:text',
+    'llama3:text',
+    'mixtral:text',
+    'gemma:7b',
+    'command-r',
+    'neural-chat',
+    'zephyr:7b-beta',
+    'openhermes',
+    'wizardcoder',
+    'starling-lm:7b-beta',
+    'yi:34b',
+    'openchat:7b',
+    'dolphin-mistral',
+    'solar',
+    'llama2:13b'
 ]
 model_names = {model_name: idx for idx, model_name in enumerate(model_names)}
+
+test_datasets = [dict(type='JsonDataset',
+                      json_file=str(json_file)) for json_file in Path('resources/sample_data').glob('*.json')]
 
 
 def datamodule_cfg():
@@ -27,11 +39,29 @@ def datamodule_cfg():
         loader_kwargs=dict(
             batch_size=batch_size,
             num_workers=num_workers,
+            # pin_memory=True,
+            # pin_memory_device='cpu'
         ),
-        dataset_cfg=dict(
+        tokenizer_cfg=dict(
+            type='AutoTokenizer',
+            model_name='microsoft/deberta-v3-small',
+            max_seq_len=512,
+        ),
+        train_dataset_cfg=dict(
             type='PKLDataset',
             csv_file='resources/data.pkl',
             model_names=model_names,
+            transforms=[
+                dict(type='DataAugmentator'),
+            ]
+        ),
+        val_dataset_cfg=dict(
+            type='ConcatDataset',
+            datasets=test_datasets[:len(test_datasets) // 2],
+        ),
+        test_dataset_cfg=dict(
+            type='ConcatDataset',
+            datasets=test_datasets[len(test_datasets) // 2:],
         )
     )
 
@@ -42,9 +72,12 @@ def trainer_cfg(**kwargs):
         min_epochs=epochs,
         callbacks=[
             dict(type='LearningRateMonitor', logging_interval='step'),
-            dict(type='ModelCheckpoint', save_top_k=3, save_last=True, verbose=True, mode='max',
+            dict(type='ModelCheckpoint', save_top_k=3, save_last=False, verbose=True, mode='max',
                  monitor='BinaryAccuracy', dirpath=resources / 'checkpoints',
-                 filename='checkpoint_{BinaryAccuracy:.3f}_{MulticlassAccuracy:.3f}')
+                 filename='checkpoint'
+                          f'_ds{kwargs["ds_size"]}'
+                          '_epoch_{epoch:02d}_{BinaryAccuracy:.3f}'),
+            # dict(type='DeviceStatsMonitor')
         ],
         benchmark=True,
         accumulate_grad_batches=1,
@@ -59,34 +92,39 @@ def trainer_cfg(**kwargs):
         # strategy=DDPStrategy(find_unused_parameters=True),
         wandb_logger=dict(
             name=f'{Path(__file__).stem}'
+                 f'_ds{kwargs["ds_size"]}'
                  f'_bs{batch_size}_epochs{epochs}',
             project='text_ai_classification',
-            key_path=Path('configs/wandb.config')
+            key_path=Path('configs/wandb.config'),
+            log_model=True,
             # mode='disabled'
-        )
+        ),
+        # profiler="simple"
     )
 
 
-def mainmodule_cfg():
+def mainmodule_cfg(**kwargs):
     return dict(
         type='BaselineClassificator',
         debug=False,
         # Model agnostic parameters
+        # backbone_cfg=dict(
+        #     type='DistilBert',
+        #     model_name='distilbert-base-uncased',
+        #     dropout=0.1,
+        #     attention_dropout=0.1,
+        # ),
         backbone_cfg=dict(
-            type='DistilBert',
-            model_name='distilbert-base-uncased',
-            dropout=0.2,
-            attention_dropout=0.2,
-        ),
-        tokenizer_cfg=dict(
-            type='DistilBertTokenizer',
-            model_name='distilbert-base-uncased',
+            type='AutoModel',
+            model_name="microsoft/deberta-v3-small",
+            # model_name="distilbert-base-uncased",
         ),
         head_cfg=dict(
             type='ClassificationHead',
             in_features=768,
-            dropout=0.2,
+            dropout=0.1,
             num_model_names=len(model_names),
+            pos_weight=kwargs['pos_weight']
         ),
         # Optimization stuff agnostic parameters
         optimizer_cfg=dict(
@@ -94,22 +132,14 @@ def mainmodule_cfg():
             lr=lr,
             betas=[0.9, 0.999],
             weight_decay=0.05,
-            eps=1e-6
+            eps=1e-8
         ),
-        # scheduler_cfg=dict(
-        #     type='CosineScheduleWithWarmup',
-        #     num_warmup_steps=100,
-        #     num_cycles=1,
-        #     num_training_steps=(ds_size // batch_size) * epochs,
-        # ),
-        # scheduler_update_params=dict(
-        #     interval='step',
-        #     frequency=1
-        # ),
-        train_transforms=[],
+        scheduler_cfg=dict(
+            num_warmup_steps=0,
+            num_training_steps=(kwargs['train_ds_size'] // batch_size) * epochs,
+        ),
         metrics=[
-            dict(type='Accuracy', task='binary')
+            dict(type='Accuracy', task='binary'),
+            dict(type='F1Score', task='binary')
         ],
-        # eval_score_thresh=0.2,
-        # eval_nms_thresh=0.8
     )
