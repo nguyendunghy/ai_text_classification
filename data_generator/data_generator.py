@@ -124,5 +124,5 @@ if __name__ == "__main__":
     ]
 
     data_generator = DataGenerator(models, model_probs=None)
-    # ai_data = data_generator.generate_ai_data(args.dataset_size)
-    human_data = data_generator.generate_human_data(args.dataset_size)
+    ai_data = data_generator.generate_ai_data(args.dataset_size)
+    # human_data = data_generator.generate_human_data(args.dataset_size)

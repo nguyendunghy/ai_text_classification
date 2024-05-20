@@ -16,3 +16,4 @@ pandas
 tqdm
 pydantic
 jupyter
+matplotlib

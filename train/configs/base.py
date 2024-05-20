@@ -30,6 +30,7 @@ model_names = [
 ]
 model_names = {model_name: idx for idx, model_name in enumerate(model_names)}
 
+backbone_model_name = 'microsoft/deberta-v3-base'
 test_datasets = [dict(type='JsonDataset',
                       json_file=str(json_file)) for json_file in Path('resources/sample_data').glob('*.json')]
 
@@ -39,12 +40,10 @@ def datamodule_cfg():
         loader_kwargs=dict(
             batch_size=batch_size,
             num_workers=num_workers,
-            # pin_memory=True,
-            # pin_memory_device='cpu'
         ),
         tokenizer_cfg=dict(
             type='AutoTokenizer',
-            model_name='microsoft/deberta-v3-small',
+            model_name=backbone_model_name,
             max_seq_len=512,
         ),
         train_dataset_cfg=dict(
@@ -74,6 +73,7 @@ def trainer_cfg(**kwargs):
             dict(type='LearningRateMonitor', logging_interval='step'),
             dict(type='ModelCheckpoint', save_top_k=3, save_last=False, verbose=True, mode='max',
                  monitor='BinaryAccuracy', dirpath=resources / 'checkpoints',
+                 enable_version_counter=True,
                  filename='checkpoint'
                           f'_ds{kwargs["ds_size"]}'
                           '_epoch_{epoch:02d}_{BinaryAccuracy:.3f}'),
@@ -96,7 +96,6 @@ def trainer_cfg(**kwargs):
                  f'_bs{batch_size}_epochs{epochs}',
             project='text_ai_classification',
             key_path=Path('configs/wandb.config'),
-            log_model=True,
             # mode='disabled'
         ),
         # profiler="simple"
@@ -108,16 +107,9 @@ def mainmodule_cfg(**kwargs):
         type='BaselineClassificator',
         debug=False,
         # Model agnostic parameters
-        # backbone_cfg=dict(
-        #     type='DistilBert',
-        #     model_name='distilbert-base-uncased',
-        #     dropout=0.1,
-        #     attention_dropout=0.1,
-        # ),
         backbone_cfg=dict(
             type='AutoModel',
-            model_name="microsoft/deberta-v3-small",
-            # model_name="distilbert-base-uncased",
+            model_name=backbone_model_name,
         ),
         head_cfg=dict(
             type='ClassificationHead',

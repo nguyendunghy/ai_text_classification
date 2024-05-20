@@ -13,44 +13,47 @@ def parse():
     parser = ArgumentParser()
     parser.add_argument('config', type=Path)
     parser.add_argument('checkpoint_path', type=Path, help='Checkpoint path')
-    parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
 
 
-def load_model(config, checkpoint_path, device):
+def load_model(config, checkpoint_path):
     config = load_module(config)
 
-    main_module = build_module(config.mainmodule_cfg())
+    main_module_cfg = config.mainmodule_cfg(
+        train_ds_size=0,
+        pos_weight=1
+    )
+    main_module = build_module(main_module_cfg)
     # load checkpoint
     state_dict = torch.load(str(checkpoint_path), map_location='cpu')['state_dict']
     main_module.load_state_dict(state_dict, strict=False)
     main_module.eval()
-    main_module.to(device).half()
+    main_module.half()
     return main_module
 
 
-def load_test_data():
-    with open('resources/test_data_2.json', 'r') as f:
-        data = json.load(f)
-        texts = data['data']
-    return texts
-
-
 def main(args):
-    main_module = load_model(args.config, args.checkpoint_path, args.device)
+    main_module = load_model(args.config, args.checkpoint_path)
 
     main_module.forward = main_module.forward_postprocess
 
+    inputs = dict(
+        x=dict(
+            input_ids=torch.zeros((1, 512), dtype=torch.int32),
+            attention_mask=torch.zeros((1, 512), dtype=torch.int32)
+        )
+    )
+    input_names = ['input_ids', 'attention_mask']
     output_names = ['ai_generated', 'model_name']
     with torch.no_grad():
         export(
-            main_module, torch.zeros((1, 512), dtype=torch.int32),
+            main_module, inputs,
             'model.onnx',
-            opset_version=11,
-            input_names=['input'],
+            opset_version=16,
+            input_names=input_names,
             output_names=output_names,
             export_params=True,
-            dynamic_axes={'input': {0: 'batch_size'},
+            dynamic_axes={**{name: {0: 'batch_size'} for name in input_names},
                           **{name: {0: 'batch_size'} for name in output_names}},
             do_constant_folding=True
         )
