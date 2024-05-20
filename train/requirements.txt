@@ -5,7 +5,7 @@ transformers
 lightning
 onnx
 wandb
-sentencepiece
+pyspellchecker
 
 nltk
 spellchecker
