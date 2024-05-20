@@ -34,7 +34,11 @@ def predict():
         input_data = data['list_text']
         labels = model(input_data)
         print(f"time loading {int(time.time_ns() - start_time):,} nanosecond")
-        return jsonify({"message": "predict successfully", "result": labels}), 200
+        response = {
+            "message": "predict successfully",
+            "result": labels
+        }
+        return jsonify(response), 200
     else:
         return jsonify({"error": "Request must be JSON"}), 400
 
