@@ -2,6 +2,8 @@ tqdm
 more_itertools
 numpy
 onnxruntime-gpu
+
 transformers
 flask
 requests
+sentencepiece

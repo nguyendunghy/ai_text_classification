@@ -10,6 +10,7 @@ from predict import Predictor
 def parse():
     parser = ArgumentParser()
     parser.add_argument('onnx_model', type=Path, default=Path('model.onnx'))
+    parser.add_argument('--tokenizer', type=Path, default='microsoft/deberta-v3-base')
     parser.add_argument('--batch-size', type=int, default=16)
     return parser.parse_args()
 
@@ -17,7 +18,7 @@ def parse():
 args = parse()
 
 app = Flask(__name__)
-model = Predictor(args.onnx_model, args.batch_size)
+model = Predictor(args.onnx_model, args.tokenizer, args.batch_size)
 
 
 @app.route("/")
