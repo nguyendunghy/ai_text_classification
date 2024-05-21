@@ -12,6 +12,7 @@ def parse():
     parser.add_argument('onnx_model', type=Path, default=Path('model.onnx'))
     parser.add_argument('--tokenizer', type=Path, default='microsoft/deberta-v3-base')
     parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--port', type=int, default=8888)
     return parser.parse_args()
 
 
@@ -44,4 +45,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=False, port=8080)
+    app.run(host='0.0.0.0', debug=False, port=args.port)
