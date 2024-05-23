@@ -1,7 +1,7 @@
 from pathlib import Path
 
 seed = 0
-gpus = [0]
+gpus = [0, ]
 batch_size = 16
 lr = 2e-5
 
@@ -30,7 +30,7 @@ model_names = [
 ]
 model_names = {model_name: idx for idx, model_name in enumerate(model_names)}
 
-backbone_model_name = 'microsoft/deberta-v3-base'
+backbone_model_name = 'microsoft/deberta-v3-large'
 test_datasets = [dict(type='JsonDataset',
                       json_file=str(json_file)) for json_file in Path('resources/sample_data').glob('*.json')]
 
@@ -77,7 +77,6 @@ def trainer_cfg(**kwargs):
                  filename='checkpoint'
                           f'_ds{kwargs["ds_size"]}'
                           '_epoch_{epoch:02d}_{BinaryAccuracy:.3f}'),
-            # dict(type='DeviceStatsMonitor')
         ],
         benchmark=True,
         accumulate_grad_batches=1,
@@ -89,7 +88,7 @@ def trainer_cfg(**kwargs):
         sync_batchnorm=False,
         accelerator='gpu',
         devices=gpus,
-        # strategy=DDPStrategy(find_unused_parameters=True),
+        strategy='ddp',
         wandb_logger=dict(
             name=f'{Path(__file__).stem}'
                  f'_ds{kwargs["ds_size"]}'
@@ -113,7 +112,7 @@ def mainmodule_cfg(**kwargs):
         ),
         head_cfg=dict(
             type='ClassificationHead',
-            in_features=768,
+            in_features=1024,
             dropout=0.1,
             num_model_names=len(model_names),
             pos_weight=kwargs['pos_weight']
