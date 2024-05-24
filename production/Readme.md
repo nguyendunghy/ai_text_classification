@@ -1,7 +1,7 @@
 # Install
 ```shell
 pip install -r requirements.txt
-ort-nightly-gpu==1.17.0.dev20231205004 --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/ort-cuda-12-nightly/pypi/simple/
+pip install ort-nightly-gpu==1.17.0.dev20231205004 --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/ort-cuda-12-nightly/pypi/simple/
 ```
 
 # Run
