@@ -9,6 +9,8 @@ import numpy as np
 import onnxruntime as ort
 import transformers
 
+from production import jackie_upgrade
+
 print(ort.get_device())
 
 
@@ -52,7 +54,8 @@ class Predictor:
         for batch in more_itertools.chunked(texts, self._batch_size):
             outputs = self.forward(batch)
             confs.extend(outputs)
-        labels = [bool(conf > 0.5) for conf in confs]
+        labels = jackie_upgrade.order_prob(confs)
+        # labels = [bool(conf > 0.5) for conf in confs]
         return labels
 
 
