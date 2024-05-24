@@ -5,11 +5,11 @@ transformers
 lightning
 onnx
 wandb
-pyspellchecker
 
 nltk
-spellchecker
 pyspellchecker
+symspellpy
+sentencepiece
 
 pandas
 numpy
