@@ -12,3 +12,5 @@ onnx_model : Path to the ONNX model file.
 tokenizer : str, The name of the tokenizer to use. The same with model architecture
 
 --batch-size 16: Set batch size for prediction.
+
+--port 8888: set port for api
