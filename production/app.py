@@ -43,7 +43,7 @@ def predict():
         texts = []
         for i, data in enumerate(input_data):
             sentences = sent_tokenize(data)
-            if len(sentences) > 4:
+            if len(sentences) > 4000000:
                 tails = sentences[2:]
                 data = ' '.join(tails)
                 texts.append(data)
