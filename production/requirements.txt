@@ -2,7 +2,7 @@ tqdm
 more_itertools
 numpy
 onnxruntime-gpu
-
+nltk==3.8.1
 transformers
 flask
 requests
