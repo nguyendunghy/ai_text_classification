@@ -1,6 +1,11 @@
 import time
-from pathlib import Path
 from argparse import ArgumentParser
+from pathlib import Path
+
+import nltk
+
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
 
 from flask import Flask, request, jsonify
 from nltk import sent_tokenize
