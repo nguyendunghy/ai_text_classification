@@ -43,8 +43,8 @@ def predict():
         texts = []
         for i, data in enumerate(input_data):
             sentences = sent_tokenize(data)
-            if len(sentences) > 3:
-                tails = sentences[1:]
+            if len(sentences) > 4:
+                tails = sentences[2:]
                 data = ' '.join(tails)
                 texts.append(data)
             else:
