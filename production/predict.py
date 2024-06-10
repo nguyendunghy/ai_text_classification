@@ -52,7 +52,6 @@ class Predictor:
         for batch in more_itertools.chunked(texts, self._batch_size):
             outputs = self.forward(batch)
             confs.extend(outputs)
-        print(f'confs = {confs}')
         labels = [float(conf) for conf in confs]
         return labels
 
