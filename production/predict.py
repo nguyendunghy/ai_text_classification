@@ -52,8 +52,9 @@ class Predictor:
         for batch in more_itertools.chunked(texts, self._batch_size):
             outputs = self.forward(batch)
             confs.extend(outputs)
-        labels = [bool(conf > 0.5) for conf in confs]
-        return labels
+        # labels = [bool(conf > 0.5) for conf in confs]
+        # return labels
+        return confs
 
 
 def load_test_data():
