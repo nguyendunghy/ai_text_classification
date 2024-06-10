@@ -3,6 +3,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 from flask import Flask, request, jsonify
+from nltk import sent_tokenize
 
 from predict import Predictor
 
@@ -33,7 +34,16 @@ def predict():
     if request.is_json:
         data = request.get_json()
         input_data = data['list_text']
-        labels = model(input_data)
+
+        texts = []
+        for i, data in enumerate(input_data):
+            sentences = sent_tokenize(data)
+            if len(sentences) > 2:
+                tails = sentences[1:]
+                data = ' '.join(tails)
+                texts.append(data)
+
+        labels = model(texts)
         print(f"time loading {int(time.time_ns() - start_time):,} nanosecond")
         response = {
             "message": "predict successfully",
