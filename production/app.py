@@ -34,6 +34,7 @@ def predict():
         data = request.get_json()
         input_data = data['list_text']
         labels = model(input_data)
+        print(f'labels = {labels}')
         print(f"time loading {int(time.time_ns() - start_time):,} nanosecond")
         response = {
             "message": "predict successfully",
