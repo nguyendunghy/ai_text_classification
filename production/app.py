@@ -47,6 +47,8 @@ def predict():
                 tails = sentences[1:]
                 data = ' '.join(tails)
                 texts.append(data)
+            else:
+                texts.append(data)
 
         labels = model(texts)
         print(f"time loading {int(time.time_ns() - start_time):,} nanosecond")
